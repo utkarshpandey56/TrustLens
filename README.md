@@ -1,31 +1,34 @@
-# Fake News & Misinformation Detection System
+# TrustLens: An Interpretable Non-Agentic Machine Learning System for Automated Misinformation Detection
 
-**Intra-IIT Hackathon 2026 — NLP / Trust & Safety**
+**IntraTech 1.0 at IIT Tirupati (2026) — NLP & Trust Safety Track (Team 97)**
 
-A non-agentic AI/ML system for detecting likely misinformation in news articles and social media content. The system combines transformer-based text classification with explainability and a reviewer dashboard to help users identify and prioritize potentially misleading content.
+**Built by:** [@Anish796](https://github.com/Anish796), [@Pranav041207](https://github.com/Pranav041207) & [@utkarshpandey56](https://github.com/utkarshpandey56)
+
+A non-agentic natural language processing pipeline designed to identify fake news articles while delivering token-level local explanations to human reviewers. By combining selective transformer layer fine-tuning with local interpretable model-agnostic explanations (LIME), the system bridges the gap between complex deep learning models and actionable decision support for fact-checking workflows.
 
 > **Important:** The system provides model predictions, not verified fact-checking. A prediction of "fake" or "real" should not be treated as definitive proof of whether a claim is true or false.
 
----
-
 ## 1. Overview
 
-The Fake News & Misinformation Detection System analyzes submitted news content and predicts whether it is:
+The TrustLens system analyzes submitted news content and predicts whether it is:
 
-* **Likely Misinformation**
-* **Likely Real**
+- **Likely Misinformation**
+
+- **Likely Authentic**
 
 For every prediction, the system provides:
 
-* Prediction label
-* Confidence score
-* Explainability information
-* Review status
-* Reviewer-oriented dashboard
+- Prediction label
+
+- Confidence score
+
+- Token-level local explanations (LIME)
+
+- Review status
+
+- Reviewer-oriented Streamlit dashboard
 
 The goal is to support human reviewers such as fact-checkers, researchers, journalists, and content moderators by helping them prioritize content that may require further investigation.
-
----
 
 ## 2. Key Features
 
@@ -33,44 +36,31 @@ The goal is to support human reviewers such as fact-checkers, researchers, journ
 
 Users can submit a news headline and article text through the Streamlit interface.
 
-The system processes the text using the trained NLP classification model and generates a prediction with a confidence score.
+The system processes the text using the fine-tuned transformer classification model and generates a prediction with a confidence score.
 
 ### Explainable Predictions
 
-The system uses an explainability layer to identify words/features that contributed to the model's prediction.
-
-This helps users understand **why the model produced a particular prediction**, rather than providing only a classification label.
+The system uses `LimeTextExplainer` to generate feature attributions for individual predictions. LIME constructs a sparse linear surrogate model around the prediction vector, assigning relative weights to tokens that push the classification towards "Authentic" or "Misinformation".
 
 ### Review Dashboard
 
-The dashboard maintains analyzed items and displays them according to their predicted category and confidence.
+The Streamlit dashboard maintains analyzed items and displays them according to their predicted category and confidence.
 
-The dashboard currently supports:
+The dashboard supports:
 
-* Likely misinformation items
-* Likely real items
-* Confidence-based ranking
-* Review status tracking
+- Likely misinformation items ranked by confidence
+
+- Likely real items ranked by confidence
+
+- Review status tracking
 
 ### Human-in-the-Loop Review
 
-Each analyzed item is initially marked as:
-
-`pending`
-
-The dashboard is designed to support reviewer feedback such as:
-
-* Confirming a prediction
-* Dismissing a prediction
-* Relabeling an item
-
-Reviewer feedback is intended to remain separate from the original model prediction.
-
----
+Incoming news items are triaged based on model output probabilities. Items falling within an uncertain probability threshold are flagged for priority human review. Reviewers can confirm, dismiss, or override flags, with feedback logged non-destructively to an external audit database for subsequent active learning cycles.
 
 ## 3. System Architecture
 
-```text
+```
                     ┌─────────────────────┐
                     │      User Input     │
                     │  Title + Article    │
@@ -78,23 +68,22 @@ Reviewer feedback is intended to remain separate from the original model predict
                                │
                                ▼
                     ┌─────────────────────┐
-                    │   Preprocessing &   │
-                    │     Tokenization    │
+                    │ Regex Dateline &    │
+                    │ spaCy Preprocessing │
                     └──────────┬──────────┘
                                │
                                ▼
                     ┌─────────────────────┐
-                    │  Transformer-Based  │
-                    │   Classification    │
-                    │       Model         │
+                    │ Partial Transformer │
+                    │ Fine-Tuning (BERT)  │
                     └──────────┬──────────┘
                                │
                   ┌────────────┴────────────┐
                   │                         │
                   ▼                         ▼
         ┌──────────────────┐      ┌──────────────────┐
-        │   Prediction &   │      │  Explainability  │
-        │    Confidence    │      │      Layer       │
+        │   Prediction &   │      │   Token-Level    │
+        │    Confidence    │      │    LIME Layer    │
         └────────┬─────────┘      └────────┬─────────┘
                  │                         │
                  └────────────┬────────────┘
@@ -107,15 +96,14 @@ Reviewer feedback is intended to remain separate from the original model predict
                                ▼
                     ┌─────────────────────┐
                     │ Human Reviewer      │
-                    │ Feedback / Status   │
+                    │ Audit Database / HITL│
                     └─────────────────────┘
-```
 
----
+```
 
 ## 4. Project Structure
 
-```text
+```
 fake-news-detection/
 │
 ├── app.py
@@ -136,414 +124,106 @@ fake-news-detection/
 │   └── ...
 │
 └── data/
-    └── dataset.csv
+    └── WELFake.csv
+
 ```
 
 ### File Descriptions
 
-| File / Folder       | Purpose                                       |
-| ------------------- | --------------------------------------------- |
-| `app.py`            | Main Streamlit application                    |
-| `model_loader.py`   | Loads the trained model and tokenizer         |
-| `explainability.py` | Generates model explanations                  |
-| `trained_model/`    | Saved trained transformer model and tokenizer |
-| `data/`             | Dataset used for development/evaluation       |
-| `requirements.txt`  | Python dependencies                           |
-| `README.md`         | Project documentation                         |
+| File / Folder       | Purpose                                         |
+| ------------------- | ----------------------------------------------- |
+| `app.py`            | Main Streamlit application and review dashboard |
+| `model_loader.py`   | Loads the trained model and tokenizer           |
+| `explainability.py` | Generates token-level LIME explanations         |
+| `trained_model/`    | Saved trained transformer model and tokenizer   |
+| `data/`             | WELFake dataset used for training/evaluation    |
+| `requirements.txt`  | Python dependencies                             |
+| `README.md`         | Project documentation                           |
 
----
+## 5. Machine Learning Pipeline & Data Engineering
 
-## 5. Machine Learning Pipeline
+### Step 1 — Dataset and Artifact Stripping
 
-### Step 1 — Dataset
-
-The model is trained using a labeled dataset containing real and fake news examples.
-
-Each example contains:
-
-```text
-Title
-Article Text
-Label
-```
-
-Labels are represented as:
-
-```text
-0 → Fake / Misinformation
-1 → Real
-```
+Model training was executed on the **WELFake** benchmark dataset, comprising 72,134 raw news records. Initial exploratory analysis identified critical dataset artifacts—specifically dateline headers such as "WASHINGTON (Reuters) -" present predominantly in real news articles which allow models to learn shortcut features rather than semantic context. A regular expression pipeline was deployed to strip metadata headers prior to tokenization.
 
 ### Step 2 — Preprocessing
 
-The title and article text are passed to the tokenizer as a text pair.
+To handle large text corpora efficiently under memory constraints, preprocessing was implemented using a chunked iteration pattern via **spaCy** (`batch_size=500`). By explicitly disabling unnecessary syntactic parsing and named entity recognition modules, the system achieved lightweight lemmatization and stop-word filtering across 63,676 deduplicated records without memory degradation.
 
-Conceptually:
+### Step 3 — Model Architecture & Partial Freezing
 
-```text
-[CLS] Title [SEP] Article Text [SEP]
-```
+The core classifier utilizes `bert-base-uncased` initialized with pre-trained weights. To balance representation capacity with computational efficiency, a partial freezing strategy was applied:
 
-The sequence is truncated/padded to the configured maximum length.
+- **Bottom 10 encoder layers (\~90M parameters):** Frozen to retain general language syntax.
 
-### Step 3 — Model
+- **Upper 2 transformer layers (Layers 10-11) & Classification Head (\~19.5M parameters):** Unfrozen for fine-tuning.
 
-A transformer-based sequence classification model is fine-tuned for binary classification.
+Training was conducted using the **AdamW optimizer** with a learning rate of $2 \times 10^{-5}$, a weight decay of $0.02$, and a classifier dropout rate of $0.3$ to prevent overfitting. Gradient norm clipping was enforced at $1.0$.
 
-The model produces two class logits:
+### Step 4 — Explainability Layer
 
-```text
-Fake
-Real
-```
+TrustLens integrates `LimeTextExplainer` to generate feature attributions for individual predictions, assigning relative weights to tokens pushing classifications toward authentic or misinformation classes.
 
-The predicted class is obtained from the highest logit/probability.
+## 6. Training & Evaluation
 
-### Step 4 — Confidence
+The architecture was evaluated on a held-out 20% test split (12,735 articles) against baseline methods, achieving an accuracy of **97.78%** and an F1-score of **0.98**.
 
-The model output is converted into a confidence score representing the model's estimated probability for the predicted class.
-
-### Step 5 — Explainability
-
-The explainability module identifies important words/features associated with the prediction.
-
-The explanation is intended to help reviewers understand the model's reasoning.
-
----
-
-## 6. Training
-
-Model training is performed separately from the Streamlit application.
-
-The training pipeline consists of:
-
-```text
-Dataset
-   ↓
-Train / Validation Split
-   ↓
-Tokenization
-   ↓
-PyTorch Dataset
-   ↓
-DataLoader
-   ↓
-Transformer Fine-Tuning
-   ↓
-Validation
-   ↓
-Best Model Selection
-   ↓
-trained_model/
-```
-
-The best-performing model based on validation loss is saved for use by the Streamlit application.
-
-The Streamlit application **does not retrain the model**.
-
----
+| Model Architecture                  | Accuracy   | Precision | Recall   | F1-Score | AUC      |
+| ----------------------------------- | ---------- | --------- | -------- | -------- | -------- |
+| TF-IDF + Logistic Regression        | 88.4%      | 0.87      | 0.89     | 0.88     | 0.91     |
+| Static BERT (Linear Head Only)      | 91.2%      | 0.90      | 0.91     | 0.91     | 0.94     |
+| **TrustLens (Top-2 Unfrozen BERT)** | **97.78%** | **0.98**  | **0.97** | **0.98** | **0.99** |
 
 ## 7. Installation
 
 ### Requirements
 
-* Python 3.10+
-* pip
-* Git
-* PyTorch
-* Transformers
-* Streamlit
-* Pandas
-* NumPy
-* Scikit-learn
-* LIME / required explainability libraries
+- Python 3.10+
 
-### Clone the Repository
+- PyTorch
 
-```bash
+- Transformers
+
+- spaCy
+
+- Streamlit
+
+- LIME
+
+- Scikit-learn
+
+- Pandas / NumPy
+
+### Clone and Setup
+
+```
 git clone <YOUR_GITHUB_REPOSITORY_URL>
 cd fake-news-detection
-```
-
-### Create a Virtual Environment
-
-Windows:
-
-```bash
 python -m venv venv
-```
-
-Activate it:
-
-```bash
-venv\Scripts\activate
-```
-
-### Install Dependencies
-
-```bash
+venv\Scripts\activate  # On Unix: source venv/bin/activate
 pip install -r requirements.txt
-```
 
----
+```
 
 ## 8. Running the Application
 
-Make sure the trained model is present inside:
+Ensure the trained model is placed inside `trained_model/`, then launch the dashboard:
 
-```text
-trained_model/
 ```
-
-Then run:
-
-```bash
 streamlit run app.py
+
 ```
 
-The Streamlit application will open in your browser.
+## 9. Responsible Use & Limitations
 
----
+TrustLens is intended as a **decision-support tool**, not an automated fact-checker. Predictions depend on training distribution, model representations, and regex artifact stripping. Human review remains essential for final determinations.
 
-## 9. Using the Application
+## 10. Team & Event
 
-### Step 1 — Enter Content
+Built for **IntraTech 1.0** at **IIT Tirupati** (2026) — **Team 97** (NLP & Trust Safety Track)
 
-Enter the headline/article content into the input interface.
+- [@Anish796](https://github.com/Anish796)
 
-### Step 2 — Analyze
+- [@Pranav041207](https://github.com/Pranav041207)
 
-Click:
-
-```text
-Analyze
-```
-
-The application sends the content through the trained model.
-
-### Step 3 — View Prediction
-
-The application displays:
-
-```text
-Prediction
-Confidence
-```
-
-Example:
-
-```text
-Prediction: fake
-Confidence: 91.2%
-```
-
-### Step 4 — View Explanation
-
-The explainability component highlights important words/features that influenced the prediction.
-
-### Step 5 — Review
-
-The analyzed item is added to the reviewer dashboard.
-
-Items can be prioritized according to their confidence and prediction category.
-
----
-
-## 10. Reviewer Dashboard
-
-The dashboard maintains a list of analyzed items.
-
-Each item contains:
-
-| Field      | Description           |
-| ---------- | --------------------- |
-| Index      | Item identifier       |
-| Text       | Submitted content     |
-| Prediction | Model prediction      |
-| Confidence | Model confidence      |
-| Status     | Current review status |
-
-Items are separated into:
-
-### Likely Misinformation
-
-Content predicted as fake/misinformation is displayed here and ranked by confidence.
-
-### Likely Real
-
-Content predicted as real is displayed separately and ranked by confidence.
-
-The dashboard is intended to help reviewers prioritize content requiring further investigation.
-
----
-
-## 11. Explainability
-
-The system does not treat the classifier as an opaque prediction engine.
-
-For every prediction, the explainability module identifies features that contributed to the prediction.
-
-The current implementation uses an explainability approach based on feature-level analysis.
-
-Example:
-
-```text
-Prediction: Fake
-
-Important features:
-
-claim        +0.42
-shocking     +0.31
-government   +0.18
-...
-```
-
-These explanations represent **model behavior**, not verified evidence that the underlying claim is true or false.
-
----
-
-## 12. Evaluation
-
-The classification model is evaluated using standard classification metrics:
-
-* Accuracy
-* Precision
-* Recall
-* F1 Score
-* AUC
-
-The validation pipeline also generates a classification report for the fake and real classes.
-
-Example:
-
-```text
-              precision    recall    f1-score
-
-fake             ...
-real             ...
-
-accuracy          ...
-```
-
-Failure cases should also be examined, particularly:
-
-* False positives
-* False negatives
-* Low-confidence predictions
-* Examples where linguistic patterns mislead the classifier
-
----
-
-## 13. Responsible Use
-
-This system is intended as a **decision-support tool**, not an automated fact-checker.
-
-A model prediction should not be interpreted as definitive evidence that an article or claim is true or false.
-
-Potential limitations include:
-
-* Dataset bias
-* Limited training data
-* Distribution shift
-* Missing source metadata
-* Incomplete propagation information
-* Linguistic patterns that may correlate with misinformation without proving it
-* Incorrect model predictions
-
-Human review remains important when making final judgments about potentially misleading content.
-
----
-
-## 14. Hackathon Requirements Addressed
-
-The system is designed around the core requirements of the Intra-IIT Hackathon:
-
-| Requirement        | Implementation                       |
-| ------------------ | ------------------------------------ |
-| Data ingestion     | Labeled news dataset                 |
-| Text preprocessing | Transformer tokenizer                |
-| Classification     | Transformer-based binary classifier  |
-| Confidence         | Prediction confidence score          |
-| Explainability     | Explainability module                |
-| Review dashboard   | Streamlit dashboard                  |
-| Ranking            | Confidence-based ranking             |
-| Human review       | Review status / feedback workflow    |
-| Evaluation         | Accuracy, Precision, Recall, F1, AUC |
-| Product interface  | Streamlit application                |
-
-The hackathon brief specifically requires an interface for submitting content, integration with the trained misinformation model, confidence scores and explanations, a reviewer dashboard, and a feedback workflow.
-
----
-
-## 15. Demo Flow
-
-For the final demonstration, the recommended flow is:
-
-```text
-1. Open the Streamlit application
-             ↓
-2. Submit a news headline/article
-             ↓
-3. Click "Analyze"
-             ↓
-4. Display prediction + confidence
-             ↓
-5. Show explanation
-             ↓
-6. Add item to review dashboard
-             ↓
-7. Show confidence-based prioritization
-             ↓
-8. Reviewer confirms / dismisses / relabels
-             ↓
-9. Store reviewer feedback
-```
-
-This demonstrates the complete path from content analysis to human review.
-
----
-
-## 16. Future Extensions
-
-Possible extensions include:
-
-* Article URL analysis
-* Batch CSV analysis
-* Downloadable CSV/PDF reports
-* Source credibility profiles
-* Historical source analysis
-* Propagation signal integration
-* Browser extension
-* Multi-article comparison
-* Contradictory claim detection
-* Multilingual support
-* Reviewer accounts and roles
-
-These correspond to optional extensions described in the hackathon brief.
-
----
-
-## 17. Limitations
-
-The current system should not be considered a replacement for professional fact-checking.
-
-Its predictions depend on:
-
-1. The quality and distribution of the training dataset.
-2. The transformer model's learned representations.
-3. The availability and quality of input text.
-4. The quality of the explainability method.
-5. The difference between training data and real-world news.
-
-Therefore, predictions should be interpreted together with the provided explanations and human review.
-
----
-
-## 18. Team
-
-**Intra-IIT Hackathon 2026**
-
-**Track:** NLP / Trust & Safety
-**Category:** Non-Agentic AI/ML System
-
-```
+- [@utkarshpandey56](https://github.com/utkarshpandey56)
